@@ -8,6 +8,7 @@
 #include <boost/bind.hpp>
 #include <iostream>
 #include <fstream>
+#include <optional>
 
 HttpServer::HttpServer(boost::asio::io_context& ioContext)
     : ioContext(ioContext),
@@ -32,13 +33,13 @@ void HttpServer::handleAccept(std::shared_ptr<TcpConnection> new_connection,
   HttpServer::acceptNewConnection();
 }
 
-std::string HttpServer::get_page(std::string path) {
+std::optional<std::string> HttpServer::get_page(std::string path) {
     if (path.back() == '/')
         path += "index.html";
     std::ifstream file;
     file.open(PATH_PREFIX + path);
-    if (file.fail())
-        return "";
+    if (!file.is_open())
+        return std::nullopt;
     file.seekg(0, std::ios::end);
     size_t file_length = file.tellg();
     std::cout << path << std::endl;

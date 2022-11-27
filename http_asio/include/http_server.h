@@ -7,6 +7,7 @@
 
 #include "tcp_connection.h"
 #include <boost/asio.hpp>
+#include <optional>
 
 // This is for debug only and will be deleted
 #define PATH_PREFIX "/home/ewan/html"
@@ -15,7 +16,7 @@ class HttpServer {
 public:
   HttpServer() = delete;
   explicit HttpServer(boost::asio::io_context &ioContext);
-  std::string get_page(std::string path);
+  std::optional<std::string> get_page(std::string path);
 
 private:
   void handleAccept(std::shared_ptr<TcpConnection>,

@@ -63,15 +63,24 @@ void TcpConnection::inital_client_accept(
 
   auto page_contents = http_server->get_page(httpHeader._uri);
 
+  auto status_code = "200";
+  auto status_text = "Ok";
+  if (!page_contents.has_value()) {
+      status_code = "404";
+      status_text = "not found :(";
+  }
+
   auto header_response = HttpResponseHeader {
       ._http_version = "1.1",
-      .status_code = "200",
-      .status_text = "Ok",
+      .status_code = status_code,
+      .status_text = status_text,
   };
 
   auto encoded_header_response = header_response.encode();
-  encoded_header_response += "\n";
-  encoded_header_response += page_contents;
+  if (page_contents.has_value()) {
+      encoded_header_response += "\n";
+      encoded_header_response += *page_contents;
+  }
 
   boost::asio::async_write(
           socket_, boost::asio::buffer(encoded_header_response),
