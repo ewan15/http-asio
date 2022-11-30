@@ -6,6 +6,7 @@
 #include "http_server.h"
 #include "http_struct.h"
 #include <iostream>
+#include <regex>
 
 void TcpConnection::start() {
   socket_.async_read_some(
@@ -57,30 +58,7 @@ void TcpConnection::inital_client_accept(
     socket_.close();
   }
 
-  if (httpHeader._http_version != "1.1") {
-      std::cout << "unable to query non 1.1 closing" << std::endl;
-  }
-
-  auto page_contents = http_server->get_page(httpHeader._uri);
-
-  auto status_code = "200";
-  auto status_text = "Ok";
-  if (!page_contents.has_value()) {
-      status_code = "404";
-      status_text = "not found :(";
-  }
-
-  auto header_response = HttpResponseHeader {
-      ._http_version = "1.1",
-      .status_code = status_code,
-      .status_text = status_text,
-  };
-
-  auto encoded_header_response = header_response.encode();
-  if (page_contents.has_value()) {
-      encoded_header_response += "\n";
-      encoded_header_response += *page_contents;
-  }
+  const auto encoded_header_response = build_response(httpHeader);
 
   boost::asio::async_write(
           socket_, boost::asio::buffer(encoded_header_response),
@@ -91,10 +69,52 @@ void TcpConnection::inital_client_accept(
   socket_.close();
 }
 
-//void TcpConnection::parse_http_request() {}
+std::string TcpConnection::build_response(HttpRequestHeader httpHeader) {
+    const auto status_code = "200";
+    const auto status_text = "Ok";
+    auto header_response = HttpResponseHeader {
+            ._http_version = "1.1",
+            .status_code = status_code,
+            .status_text = status_text,
+    };
+
+    if (httpHeader._http_version != "1.1") {
+        header_response.status_code = "400";
+        header_response.status_text = "unable to query non 1.1 closing";
+        return header_response.encode();
+    }
+
+    if (!check_page_safe(httpHeader._uri)) {
+        header_response.status_code = "401";
+        header_response.status_text = "attempting to access forbidden directory";
+        return header_response.encode();
+    }
+
+    auto page_contents = http_server->get_page(httpHeader._uri);
+
+    if (!page_contents.has_value()) {
+        header_response.status_code = "404";
+        header_response.status_text = "can't find! :(";
+        return header_response.encode();
+    }
+
+    auto encoded_header_response = header_response.encode();
+    if (page_contents.has_value()) {
+        encoded_header_response += "\n";
+        encoded_header_response += *page_contents;
+    }
+    return encoded_header_response;
+}
 
 void TcpConnection::handle_read(
     const boost::system::error_code & /*error*/, // Result of operation.
     std::size_t  /*bytes_transferred*/           // Number of bytes copied into the
 ) {
+}
+
+bool check_page_safe(std::string& path) {
+    std::regex self_regex("/(.?\\w)*",
+                          std::regex_constants::ECMAScript | std::regex_constants::icase);
+
+    return std::regex_match(path, self_regex);
 }

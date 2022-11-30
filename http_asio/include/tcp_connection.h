@@ -7,6 +7,7 @@
 
 #include "boost/asio.hpp"
 #include "boost/bind.hpp"
+#include "http_struct.h"
 
 #define DEFAULT_CLIENT_BUFFER_SIZE 1'000'000
 
@@ -29,11 +30,14 @@ private:
   void handle_read(const boost::system::error_code & /*error*/,
                    size_t /*bytes_transferred*/);
   void inital_client_accept(const boost::system::error_code &, size_t);
+  std::string build_response(HttpRequestHeader);
 
   HttpServer* http_server;
   boost::asio::ip::tcp::socket socket_;
   std::string message_;
   std::vector<char> buffer;
 };
+
+bool check_page_safe(std::string& path);
 
 #endif // TCP_CONNECTION_H

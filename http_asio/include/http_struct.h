@@ -29,18 +29,6 @@ struct HttpResponseHeader {
     std::string encode();
 };
 
-std::string HttpResponseHeader::encode() {
-    std::string message;
-    message += "HTTP/" + _http_version + " " + status_code + " " + status_text + "\n";
-
-    for (const auto& header: headers) {
-        message += header.first + ": " + header.second + "\n";
-    }
-
-    return message;
-}
-
-
 BOOST_FUSION_ADAPT_STRUCT(HttpRequestHeader, _method, _uri, _http_version, _header_fields)
 
 namespace qi = boost::spirit::qi;
