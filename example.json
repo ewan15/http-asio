@@ -1,0 +1,5 @@
+{
+    "host": "localhost",
+    "port": 8080,
+    "web_path": "html/"
+}

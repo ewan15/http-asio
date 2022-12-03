@@ -2,7 +2,7 @@
   description = "A template for Nix based C++ project setup.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/22.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/22.11";
 
     utils.url = "github:numtide/flake-utils";
     utils.inputs.nixpkgs.follows = "nixpkgs";
@@ -26,6 +26,7 @@
                    boost179
                    spdlog
                    python3
+                   fmt
                  ];
                  shellHook = ''export _JAVA_AWT_WM_NONREPARENTING=1; export PS1="\e[0;31m[\u@\h \W]\$ \e[m "'';
                };
