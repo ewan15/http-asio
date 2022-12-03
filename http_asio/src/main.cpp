@@ -44,7 +44,7 @@ std::optional<Config> parse_config(int ac, char **av) {
 }
 
 int main(int ac, char **av) {
-  spdlog::set_level(spdlog::level::err);
+  spdlog::set_level(spdlog::level::debug);
   SPDLOG_INFO("Running");
 
   const auto config = parse_config(ac, av);
@@ -53,7 +53,21 @@ int main(int ac, char **av) {
 
   try {
     boost::asio::io_context io_context;
+
     HttpServer httpServer(io_context, std::move(*config));
+
+    std::vector<std::thread> threads;
+    const auto thread_count = std::thread::hardware_concurrency() * 2;
+    for (int i = 0; i < thread_count; i++) {
+      threads.emplace_back([&]{io_context.run();});
+    }
+
+    for (auto& thread: threads) {
+      if (thread.joinable()) {
+        thread.join();
+      }
+    }
+
     io_context.run();
   } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;

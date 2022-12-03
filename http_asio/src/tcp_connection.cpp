@@ -38,7 +38,9 @@ void TcpConnection::setup_read() {
 void TcpConnection::inital_client_accept(const boost::system::error_code &error,
                                          std::size_t bytes_transferred) {
   if (error) {
+    SPDLOG_INFO("error on client read. disconnecting");
     socket_.close();
+    return;
   }
 
   // If client sends empty window connection could still be valid.
@@ -67,8 +69,9 @@ void TcpConnection::inital_client_accept(const boost::system::error_code &error,
     socket_.close();
   }
 
-  const auto encoded_header_response = build_response(http_header);
+  bool should_kill_connection = false;
 
+  const auto encoded_header_response = build_response(http_header, should_kill_connection);
   SPDLOG_DEBUG("{}", encoded_header_response);
 
   boost::asio::async_write(
@@ -77,17 +80,21 @@ void TcpConnection::inital_client_accept(const boost::system::error_code &error,
                   boost::asio::placeholders::error,
                   boost::asio::placeholders::bytes_transferred));
 
-  if (http_header._header_fields.count(HTTP_HEADER_CONNECTION) &&
+  // Checking if keep-alive is enabled
+  if (!should_kill_connection &&
+      http_header._header_fields.count(HTTP_HEADER_CONNECTION) &&
       http_header._header_fields[HTTP_HEADER_CONNECTION] ==
           HTTP_HEADER_CONNECTION_KEEP_ALIVE) {
-    // Lets keep the connection alive
     setup_read();
   } else {
+    SPDLOG_INFO("closing connection with client due to keep-alive disabled");
     socket_.close();
   }
 }
 
-std::string TcpConnection::build_response(HttpRequestHeader httpHeader) {
+std::string TcpConnection::build_response(HttpRequestHeader httpHeader, bool &should_kill_connection) {
+  std::string response_body;
+
   const auto status_code = "200";
   const auto status_text = "Ok";
   auto header_response = HttpResponseHeader{
@@ -95,11 +102,13 @@ std::string TcpConnection::build_response(HttpRequestHeader httpHeader) {
       .status_code = status_code,
       .status_text = status_text,
   };
+  header_response.headers[HTTP_HEADER_CONNECTION] = HTTP_HEADER_CONNECTION_KEEP_ALIVE;
 
   if (httpHeader._http_version != "1.1") {
     SPDLOG_DEBUG("Client [400] sent incompatible HTTP version, killing");
     header_response.status_code = "400";
     header_response.status_text = "unable to query non 1.1 closing";
+    should_kill_connection = true;
     return header_response.encode();
   }
 
@@ -110,24 +119,37 @@ std::string TcpConnection::build_response(HttpRequestHeader httpHeader) {
     return header_response.encode();
   }
 
+  if (httpHeader._uri == "/tea" || httpHeader._uri == "/teapot") {
+    SPDLOG_DEBUG("Client [418] brewing tea");
+    header_response.status_code = "418";
+    header_response.status_text = "you found some tea!";
+    header_response.headers[HTTP_HEADER_CONTENT_LENGTH] = std::to_string((HTTP_418).size());
+    response_body = HTTP_418;
+    auto encoded_header_response = header_response.encode();
+    encoded_header_response += "\n";
+    encoded_header_response += response_body;
+    return encoded_header_response;
+  }
+
   auto page_contents = http_server->get_page(httpHeader._uri);
 
   if (!page_contents.has_value()) {
     SPDLOG_DEBUG("Client [404] attempting to access unknown file");
     header_response.status_code = "404";
-    header_response.status_text = "can't find! :(";
-    return header_response.encode();
+    header_response.status_text = "unable to find file";
+    header_response.headers[HTTP_HEADER_CONTENT_LENGTH] = std::to_string((HTTP_404).size());
+    response_body = HTTP_404;
   }
 
   if (page_contents.has_value()) {
-    header_response.headers[HTTP_HEADER_CONNECTION] = HTTP_HEADER_CONNECTION_KEEP_ALIVE;
     header_response.headers[HTTP_HEADER_CONTENT_LENGTH] = std::to_string((*page_contents).size());
+    response_body = *page_contents;
   }
+
   auto encoded_header_response = header_response.encode();
-  if (page_contents.has_value()) {
-    encoded_header_response += "\n";
-    encoded_header_response += *page_contents;
-  }
+  encoded_header_response += "\n";
+  encoded_header_response += response_body;
+
   SPDLOG_DEBUG("Built 201 response for client");
   return encoded_header_response;
 }
@@ -143,3 +165,7 @@ bool check_page_safe(std::string &path) {
 
   return std::regex_match(path, self_regex);
 }
+//GET /index.html HTTP/1.1
+//Accept-Language: en-us
+//Accept-Encoding: gzip, deflate
+//Connection: Keep-Alive

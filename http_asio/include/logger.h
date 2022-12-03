@@ -3,7 +3,7 @@
 
 #ifndef SPDLOG_FMT_EXTERNAL
 #define SPDLOG_FMT_EXTERNAL
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_ERROR
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #endif
 #include "spdlog/spdlog.h"
 

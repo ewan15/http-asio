@@ -11,9 +11,29 @@
 #include <map>
 #include <string>
 
-#define HTTP_HEADER_CONNECTION_KEEP_ALIVE "keep-alive"
 #define HTTP_HEADER_CONNECTION "Connection"
+#define HTTP_HEADER_CONNECTION_KEEP_ALIVE "keep-alive"
+#define HTTP_HEADER_CONNECTION_CLOSE "close"
+
 #define HTTP_HEADER_CONTENT_LENGTH "Content-Length"
+
+const std::string HTTP_404 =
+R"(<html>
+<head><title>404 Not Found</title></head>
+<body bgcolor="#363636">
+<center><h1>404 Not Found</h1></center>
+<hr><center>http-asio/beta</center>
+</body>
+</html>)";
+
+const std::string HTTP_418 =
+R"(<html>
+<head><title>418 Teapot</title></head>
+<body bgcolor="#363636">
+<center><h1>Yum Yum Yum. Teaaa</h1></center>
+<hr><center>http-asio</center>
+</body>
+</html>)";
 
 typedef std::map<std::string, std::string> header_fields_t;
 

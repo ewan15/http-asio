@@ -31,7 +31,7 @@ private:
   void handle_read(const boost::system::error_code & /*error*/,
                    size_t /*bytes_transferred*/);
   void inital_client_accept(const boost::system::error_code &, size_t);
-  std::string build_response(HttpRequestHeader);
+  std::string build_response(HttpRequestHeader, bool &should_kill_connection);
 
   HttpServer *http_server;
   boost::asio::ip::tcp::socket socket_;
