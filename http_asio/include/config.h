@@ -4,12 +4,12 @@
 #include <string>
 
 struct Config {
-  Config() = delete;
-  Config(std::string &json);
+    Config() = delete;
+    Config(std::string& json);
 
-  std::string host;
-  int32_t port;
-  std::string web_path;
+    std::string host;
+    int32_t port;
+    std::string web_path;
 };
 
 #endif

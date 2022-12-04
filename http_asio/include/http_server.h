@@ -15,17 +15,17 @@
 
 class HttpServer {
 public:
-  HttpServer() = delete;
-  explicit HttpServer(boost::asio::io_context &ioContext, Config config);
-  std::optional<std::string> get_page(std::string path);
+    HttpServer() = delete;
+    explicit HttpServer(boost::asio::io_context& ioContext, Config config);
+    std::optional<std::string> get_page(std::string path);
 
 private:
-  void handleAccept(std::shared_ptr<TcpConnection>,
-                    const boost::system::error_code &error);
-  void acceptNewConnection();
-  Config config;
-  boost::asio::io_context &ioContext;
-  boost::asio::ip::tcp::acceptor acceptor_;
+    void handleAccept(std::shared_ptr<TcpConnection>,
+        const boost::system::error_code& error);
+    void acceptNewConnection();
+    Config config;
+    boost::asio::io_context& ioContext;
+    boost::asio::ip::tcp::acceptor acceptor_;
 };
 
 #endif // HTTP_SERVER_H
