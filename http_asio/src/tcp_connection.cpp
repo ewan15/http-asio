@@ -8,6 +8,8 @@
 #include "logger.h"
 #include <iostream>
 #include <regex>
+#include <iomanip>
+#include <ctime>
 
 void TcpConnection::start()
 {
@@ -107,6 +109,15 @@ std::string TcpConnection::build_response(HttpRequestHeader httpHeader,
         .status_text = status_text,
     };
     header_response.headers[HTTP_HEADER_CONNECTION] = HTTP_HEADER_CONNECTION_KEEP_ALIVE;
+    header_response.headers[HTTP_HEADER_SERVER] = "http-asio/beta";
+
+    // Get time as string
+    std::time_t t = std::time(nullptr);
+    std::string datetime(100,0);
+    datetime.resize(std::strftime(&datetime[0], datetime.size(), 
+        "%a %d %b %Y - %I:%M:%S%p", std::localtime(&t)));
+
+    header_response.headers[HTTP_HEADER_DATE] = datetime;
 
     if (httpHeader._http_version != "1.1") {
         SPDLOG_DEBUG("Client [400] sent incompatible HTTP version, killing");

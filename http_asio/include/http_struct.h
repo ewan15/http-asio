@@ -17,6 +17,12 @@
 
 #define HTTP_HEADER_CONTENT_LENGTH "Content-Length"
 
+#define HTTP_HEADER_CONTENT_TYPE "Content-Type"
+
+#define HTTP_HEADER_DATE "Date"
+
+#define HTTP_HEADER_SERVER "Server"
+
 const std::string HTTP_404 =
     R"(<html>
 <head><title>404 Not Found</title></head>
