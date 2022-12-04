@@ -3,16 +3,22 @@
 This is a http server written in C++, initally to further improve upon my C++ skills.
 
 
-## Dev
+## Enter dev environment
 
 ```
 nix develop
 ```
 
+## Build docker image
+
+```
+nix build #.docker
+```
+
 ## Running
 
 ```
-http_server --path example.json
+http_server --path config.json
 ```
 
 ## Benchmark
