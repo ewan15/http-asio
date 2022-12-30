@@ -7,6 +7,7 @@
 , boost
 , python3
 , fmt
+, openssl
 }:
 
 llvmPackages_14.stdenv.mkDerivation rec {
@@ -16,13 +17,6 @@ llvmPackages_14.stdenv.mkDerivation rec {
   src = ./.;
 
   nativeBuildInputs = [
-    clang_14
-    cmake
-    cmakeCurses
-    boost
-    spdlog
-    python3
-    fmt
   ];
   buildInputs = [
     clang_14
@@ -32,6 +26,7 @@ llvmPackages_14.stdenv.mkDerivation rec {
     spdlog
     python3
     fmt
+    openssl
   ];
 
   cmakeFlags = [

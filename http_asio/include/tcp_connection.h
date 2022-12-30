@@ -15,12 +15,15 @@
 
 class HttpServer;
 
-class TcpConnection : public std::enable_shared_from_this<TcpConnection> {
+// boost::asio::ip::tcp::socket
+
+template<typename socket_type>
+class TcpConnection : public std::enable_shared_from_this<TcpConnection<socket_type>> {
 public:
     TcpConnection() = delete;
     TcpConnection(boost::asio::io_context& io_context, HttpServer* http_server);
 
-    boost::asio::ip::tcp::socket& socket() { return socket_; }
+    socket_type& socket() { return socket_; }
     void start();
 
 private:
@@ -34,11 +37,12 @@ private:
     std::string build_response(HttpRequestHeader, bool& should_kill_connection);
 
     HttpServer* http_server;
-    boost::asio::ip::tcp::socket socket_;
+    socket_type socket_;
     std::string message_;
     std::vector<char> buffer;
 };
 
 bool check_page_safe(std::string& path);
+template<typename socket_type> socket_type create_socket(boost::asio::io_context& io_context);
 
 #endif // TCP_CONNECTION_H

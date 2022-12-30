@@ -45,6 +45,8 @@
           spdlog
           python3
           fmt
+          openssl
+          openssl_1_1
         ];
         shellHook = ''export _JAVA_AWT_WM_NONREPARENTING=1; export PS1="\e[0;31m[\u@\h \W]\$ \e[m "'';
       };

@@ -10,44 +10,51 @@
 #include <regex>
 #include <iomanip>
 #include <ctime>
+#include <boost/asio/ssl.hpp>
 
-void TcpConnection::start()
+template<typename socket_type>
+void TcpConnection<socket_type>::start()
 {
-    // Inefficent
+    // Inefficient
     socket_.async_read_some(
         boost::asio::buffer(buffer, DEFAULT_CLIENT_BUFFER_SIZE),
-        boost::bind(&TcpConnection::inital_client_accept, shared_from_this(),
+        boost::bind(&TcpConnection::inital_client_accept, this->shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 }
 
-TcpConnection::TcpConnection(boost::asio::io_context& io_context,
+template<typename socket_type>
+TcpConnection<socket_type>::TcpConnection(
+        boost::asio::io_context& io_context,
     HttpServer* http_server)
-    : socket_(io_context)
+    : socket_(create_socket<socket_type>(io_context))
     , buffer(DEFAULT_CLIENT_BUFFER_SIZE)
     , http_server(http_server)
 {
 }
 
-void TcpConnection::handle_write(const boost::system::error_code& /*error*/,
+template<typename socket_type>
+void TcpConnection<socket_type>::handle_write(const boost::system::error_code& /*error*/,
     size_t /*bytes_transferred*/) { }
 
-void TcpConnection::setup_read()
+template<typename socket_type>
+void TcpConnection<socket_type>::setup_read()
 {
     // Inefficent
     socket_.async_read_some(
         boost::asio::buffer(buffer, DEFAULT_CLIENT_BUFFER_SIZE),
-        boost::bind(&TcpConnection::inital_client_accept, shared_from_this(),
+        boost::bind(&TcpConnection::inital_client_accept, this->shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 }
 
-void TcpConnection::inital_client_accept(const boost::system::error_code& error,
+template<typename socket_type>
+void TcpConnection<socket_type>::inital_client_accept(const boost::system::error_code& error,
     std::size_t bytes_transferred)
 {
     if (error) {
-        SPDLOG_INFO("error on client read. disconnecting");
-        socket_.close();
+        SPDLOG_INFO("error on client read. disconnecting: {}", error.message());
+//        socket_.close();
         return;
     }
 
@@ -73,7 +80,7 @@ void TcpConnection::inital_client_accept(const boost::system::error_code& error,
     if (!canParseHTTPHeaders) {
         // We need to kill the connection
         SPDLOG_DEBUG("Unable to parse client header, killing");
-        socket_.close();
+//        socket_.close();
     }
 
     bool should_kill_connection = false;
@@ -83,7 +90,7 @@ void TcpConnection::inital_client_accept(const boost::system::error_code& error,
 
     boost::asio::async_write(
         socket_, boost::asio::buffer(encoded_header_response),
-        boost::bind(&TcpConnection::handle_write, shared_from_this(),
+        boost::bind(&TcpConnection::handle_write, this->shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
@@ -92,11 +99,12 @@ void TcpConnection::inital_client_accept(const boost::system::error_code& error,
         setup_read();
     } else {
         SPDLOG_INFO("closing connection with client due to keep-alive disabled");
-        socket_.close();
+//        socket_.close();
     }
 }
 
-std::string TcpConnection::build_response(HttpRequestHeader httpHeader,
+template<typename socket_type>
+std::string TcpConnection<socket_type>::build_response(HttpRequestHeader httpHeader,
     bool& should_kill_connection)
 {
     std::string response_body;
@@ -114,7 +122,7 @@ std::string TcpConnection::build_response(HttpRequestHeader httpHeader,
     // Get time as string
     std::time_t t = std::time(nullptr);
     std::string datetime(100,0);
-    datetime.resize(std::strftime(&datetime[0], datetime.size(), 
+    datetime.resize(std::strftime(&datetime[0], datetime.size(),
         "%a %d %b %Y - %I:%M:%S%p", std::localtime(&t)));
 
     header_response.headers[HTTP_HEADER_DATE] = datetime;
@@ -149,7 +157,7 @@ std::string TcpConnection::build_response(HttpRequestHeader httpHeader,
     auto page_contents = http_server->get_page(httpHeader._uri);
 
     if (!page_contents.has_value()) {
-        SPDLOG_DEBUG("Client [404] attempting to access unknown file");
+        SPDLOG_DEBUG("Client [404] attempting to access unknown file {}", httpHeader._uri);
         header_response.status_code = "404";
         header_response.status_text = "unable to find file";
         header_response.headers[HTTP_HEADER_CONTENT_LENGTH] = std::to_string((HTTP_404).size());
@@ -169,7 +177,8 @@ std::string TcpConnection::build_response(HttpRequestHeader httpHeader,
     return encoded_header_response;
 }
 
-void TcpConnection::handle_read(
+template<typename socket_type>
+void TcpConnection<socket_type>::handle_read(
     const boost::system::error_code& /*error*/, // Result of operation.
     std::size_t /*bytes_transferred*/ // Number of bytes copied into the
 )
@@ -182,3 +191,20 @@ bool check_page_safe(std::string& path)
 
     return std::regex_match(path, self_regex);
 }
+
+template<typename socket_type> socket_type create_socket(boost::asio::io_context& io_context) {
+    if constexpr(std::is_same<socket_type, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>::value) {
+        boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
+        ctx.set_default_verify_paths();
+        return socket_type(io_context, ctx);
+    } else {
+        return socket_type(io_context);
+    }
+}
+
+template boost::asio::ip::tcp::socket create_socket(boost::asio::io_context&);
+template boost::asio::ssl::stream<boost::asio::ip::tcp::socket> create_socket(boost::asio::io_context&);
+
+// Networking sockets allowed for communication to client
+template class TcpConnection<boost::asio::ip::tcp::socket>;
+template class TcpConnection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>;

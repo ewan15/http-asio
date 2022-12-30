@@ -10,6 +10,7 @@ struct Config {
     std::string host;
     int32_t port;
     std::string web_path;
+    bool secure;
 };
 
 #endif

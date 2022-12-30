@@ -11,7 +11,7 @@ namespace po = boost::program_options;
 
 std::optional<Config> parse_config(int ac, char** av)
 {
-    std::string config_path = "/etc/http-asio/config.json";
+    std::string config_path = "/http_asio/config.json";
     po::options_description desc("Allowed options");
     desc.add_options()("help", "produce help message")(
         "path", po::value<std::string>(), "config path");

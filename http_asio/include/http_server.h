@@ -20,8 +20,11 @@ public:
     std::optional<std::string> get_page(std::string path);
 
 private:
-    void handleAccept(std::shared_ptr<TcpConnection>,
-        const boost::system::error_code& error);
+    template<typename socket_type>
+    void handleAccept(std::shared_ptr<TcpConnection<socket_type>> new_connection,
+                                  const boost::system::error_code& error);
+
+    template<typename socket_type>
     void acceptNewConnection();
     Config config;
     boost::asio::io_context& ioContext;

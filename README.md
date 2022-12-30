@@ -14,7 +14,7 @@ nix develop
 ```
 nix build #.docker
 ```
-
+Env var: HTTP_ASIO_CONFIG_PATH=location of config.json
 ## Running
 
 ```

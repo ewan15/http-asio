@@ -12,4 +12,5 @@ Config::Config(std::string& json)
     host = pt.get<std::string>("host");
     port = pt.get<int32_t>("port");
     web_path = pt.get<std::string>("web_path");
+    secure = pt.get_optional<bool>("secure").value_or(false);
 }
