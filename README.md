@@ -2,6 +2,15 @@
 
 This is a http server written in C++, initally to further improve upon my C++ skills.
 
+## Features
+
+| Syntax      | Description |
+| ----------- | ----------- |
+| HTTP 1 | ✅ |
+| HTTP 1.1 | ✅ |
+| HTTP 2.x | ❌ |
+| SSL | ❌ |
+
 
 ## Enter dev environment
 
