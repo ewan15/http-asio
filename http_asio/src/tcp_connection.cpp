@@ -194,8 +194,15 @@ bool check_page_safe(std::string& path)
 
 template<typename socket_type> socket_type create_socket(boost::asio::io_context& io_context) {
     if constexpr(std::is_same<socket_type, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>::value) {
-        boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
-        ctx.set_default_verify_paths();
+        boost::asio::ssl::context ctx(boost::asio::ssl::context::tlsv12);
+        if(strcmp(std::getenv("CUSTOM_SSL_CERTS"), "TRUE") == 0) {
+            ctx.use_certificate_chain_file("certs/server.crt");
+            ctx.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
+            ctx.use_tmp_dh_file("certs/dh2048.pem");
+        } else {
+            ctx.set_default_verify_paths();
+        }
+
         return socket_type(io_context, ctx);
     } else {
         return socket_type(io_context);

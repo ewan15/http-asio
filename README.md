@@ -9,7 +9,7 @@ This is a http server written in C++, initally to further improve upon my C++ sk
 | HTTP 1 | ✅ |
 | HTTP 1.1 | ✅ |
 | HTTP 2.x | ❌ |
-| SSL | ❌ |
+| SSL | ✅ |
 
 
 ## Enter dev environment
