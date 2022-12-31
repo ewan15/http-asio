@@ -199,6 +199,29 @@ template<typename socket_type> socket_type create_socket(boost::asio::io_context
             ctx.use_certificate_chain_file("certs/server.crt");
             ctx.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
             ctx.use_tmp_dh_file("certs/dh2048.pem");
+
+            const auto lam = [](SSL *ssl,
+                                 const unsigned char **out,
+                                 unsigned char *outlen,
+                                 const unsigned char *in,
+                                 unsigned int inlen,
+                                 void *arg){
+                int outlen_int = *outlen;
+                std::cout << "hi"<< std::endl;
+                std::cout << outlen_int << std::endl;
+                std::cout << inlen << std::endl;
+                for (std::size_t i = 0; i < inlen; i++)
+                {
+                    std::cout << in[i] << std::endl;
+                }
+                *out = reinterpret_cast<const unsigned char *>("h2");
+                *outlen = 2;
+                std::cout << "hi2"<< std::endl;
+                return SSL_TLSEXT_ERR_OK;
+            };
+            SSL_CTX_set_alpn_select_cb(ctx.native_handle(),lam, nullptr);
+
+
         } else {
             ctx.set_default_verify_paths();
         }

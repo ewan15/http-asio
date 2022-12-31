@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <optional>
+#include <openssl/ssl.h>
 
 using plain_socket = boost::asio::ip::tcp::socket;
 using ssl_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
@@ -20,19 +21,31 @@ void HttpServer::acceptNewConnection<boost::asio::ssl::stream<boost::asio::ip::t
 {
     auto new_connection = std::make_shared<TcpConnection<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>>(ioContext, this);
 
-//    acceptor_.async_accept(new_connection->socket(),
-//                           boost::bind(&HttpServer::handleAccept<boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>, this,
-//                                       new_connection,
-//                                       boost::asio::placeholders::error));
     acceptor_.async_accept(
             new_connection->socket().lowest_layer(),
             [this, new_connection] (auto error) {
-                new_connection->socket().handshake(boost::asio::ssl::stream_base::server);
+
+                const auto ssl_socket = new_connection->socket().native_handle();
+                const auto* alpn = reinterpret_cast<const unsigned char *>("hi");
+//                SSL_set_alpn_protos(ssl_socket, alpn, 2);
+                const unsigned char *out;
+                unsigned int outlen;
+                // TODO: this is very bad, need to make async
+                new_connection->socket().handshake(
+                        boost::asio::ssl::stream_base::server);
+                const auto ssl = new_connection->socket().native_handle();
+//                SSL_get0_alpn_selected(ssl,&out,&outlen);
+//                SSL_get0_next_proto_negotiated(ssl,&out,&outlen);
+
+                std::cout << "connected" << std::endl;
+                std::cout << outlen << std::endl;
+                std::cout << std::string(out, out+outlen) << std::endl;
+
+//                SSL_select_next_proto(&out, &outlen, new_connection->socket().server)
+
                 handleAccept(new_connection, error);
             }
     );
-    //new_connection->socket().async_handshake(boost::asio::ssl::stream_base::server,
-    //                        [this, new_connection] (auto error) { handleAccept(new_connection, error); });
 }
 
 template<typename socket_type>
