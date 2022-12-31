@@ -6,13 +6,13 @@
 #include "http_server.h"
 #include "http_struct.h"
 #include "logger.h"
+#include <boost/asio/ssl.hpp>
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <regex>
-#include <iomanip>
-#include <ctime>
-#include <boost/asio/ssl.hpp>
 
-template<typename socket_type>
+template <typename socket_type>
 void TcpConnection<socket_type>::start()
 {
     // Inefficient
@@ -23,9 +23,9 @@ void TcpConnection<socket_type>::start()
             boost::asio::placeholders::bytes_transferred));
 }
 
-template<typename socket_type>
+template <typename socket_type>
 TcpConnection<socket_type>::TcpConnection(
-        boost::asio::io_context& io_context,
+    boost::asio::io_context& io_context,
     HttpServer* http_server)
     : socket_(create_socket<socket_type>(io_context))
     , buffer(DEFAULT_CLIENT_BUFFER_SIZE)
@@ -33,11 +33,11 @@ TcpConnection<socket_type>::TcpConnection(
 {
 }
 
-template<typename socket_type>
+template <typename socket_type>
 void TcpConnection<socket_type>::handle_write(const boost::system::error_code& /*error*/,
     size_t /*bytes_transferred*/) { }
 
-template<typename socket_type>
+template <typename socket_type>
 void TcpConnection<socket_type>::setup_read()
 {
     // Inefficent
@@ -48,13 +48,13 @@ void TcpConnection<socket_type>::setup_read()
             boost::asio::placeholders::bytes_transferred));
 }
 
-template<typename socket_type>
+template <typename socket_type>
 void TcpConnection<socket_type>::inital_client_accept(const boost::system::error_code& error,
     std::size_t bytes_transferred)
 {
     if (error) {
         SPDLOG_INFO("error on client read. disconnecting: {}", error.message());
-//        socket_.close();
+        //        socket_.close();
         return;
     }
 
@@ -80,7 +80,7 @@ void TcpConnection<socket_type>::inital_client_accept(const boost::system::error
     if (!canParseHTTPHeaders) {
         // We need to kill the connection
         SPDLOG_DEBUG("Unable to parse client header, killing");
-//        socket_.close();
+        //        socket_.close();
     }
 
     bool should_kill_connection = false;
@@ -99,11 +99,11 @@ void TcpConnection<socket_type>::inital_client_accept(const boost::system::error
         setup_read();
     } else {
         SPDLOG_INFO("closing connection with client due to keep-alive disabled");
-//        socket_.close();
+        //        socket_.close();
     }
 }
 
-template<typename socket_type>
+template <typename socket_type>
 std::string TcpConnection<socket_type>::build_response(HttpRequestHeader httpHeader,
     bool& should_kill_connection)
 {
@@ -121,7 +121,7 @@ std::string TcpConnection<socket_type>::build_response(HttpRequestHeader httpHea
 
     // Get time as string
     std::time_t t = std::time(nullptr);
-    std::string datetime(100,0);
+    std::string datetime(100, 0);
     datetime.resize(std::strftime(&datetime[0], datetime.size(),
         "%a %d %b %Y - %I:%M:%S%p", std::localtime(&t)));
 
@@ -177,7 +177,7 @@ std::string TcpConnection<socket_type>::build_response(HttpRequestHeader httpHea
     return encoded_header_response;
 }
 
-template<typename socket_type>
+template <typename socket_type>
 void TcpConnection<socket_type>::handle_read(
     const boost::system::error_code& /*error*/, // Result of operation.
     std::size_t /*bytes_transferred*/ // Number of bytes copied into the
@@ -192,36 +192,27 @@ bool check_page_safe(std::string& path)
     return std::regex_match(path, self_regex);
 }
 
-template<typename socket_type> socket_type create_socket(boost::asio::io_context& io_context) {
-    if constexpr(std::is_same<socket_type, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>::value) {
+template <typename socket_type>
+socket_type create_socket(boost::asio::io_context& io_context)
+{
+    if constexpr (std::is_same<socket_type, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>>::value) {
         boost::asio::ssl::context ctx(boost::asio::ssl::context::tlsv12);
-        if(strcmp(std::getenv("CUSTOM_SSL_CERTS"), "TRUE") == 0) {
+        if (strcmp(std::getenv("CUSTOM_SSL_CERTS"), "TRUE") == 0) {
             ctx.use_certificate_chain_file("certs/server.crt");
             ctx.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
             ctx.use_tmp_dh_file("certs/dh2048.pem");
 
-            const auto lam = [](SSL *ssl,
-                                 const unsigned char **out,
-                                 unsigned char *outlen,
-                                 const unsigned char *in,
+            const auto lam = [](SSL* ssl,
+                                 const unsigned char** out,
+                                 unsigned char* outlen,
+                                 const unsigned char* in,
                                  unsigned int inlen,
-                                 void *arg){
-                int outlen_int = *outlen;
-                std::cout << "hi"<< std::endl;
-                std::cout << outlen_int << std::endl;
-                std::cout << inlen << std::endl;
-                for (std::size_t i = 0; i < inlen; i++)
-                {
-                    std::cout << in[i] << std::endl;
-                }
-                *out = reinterpret_cast<const unsigned char *>("h2");
-                *outlen = 2;
-                std::cout << "hi2"<< std::endl;
+                                 void* arg) {
+                *out = reinterpret_cast<const unsigned char*>("http/1.1");
+                *outlen = 8;
                 return SSL_TLSEXT_ERR_OK;
             };
-            SSL_CTX_set_alpn_select_cb(ctx.native_handle(),lam, nullptr);
-
-
+            SSL_CTX_set_alpn_select_cb(ctx.native_handle(), lam, nullptr);
         } else {
             ctx.set_default_verify_paths();
         }
